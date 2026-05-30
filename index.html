@@ -1,476 +1,641 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Prompt Engineering — Learn to Code Prompts</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Prompt Engineering Mastery — 20 Lessons</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; }
-    body {
-      background: #0b0c10;
-      color: #e8e6e0;
-      font-family: Georgia, 'Times New Roman', serif;
-    }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #111; }
-    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-    textarea:focus { border-color: #e94560 !important; }
-    button:focus { outline: 2px solid #e94560; outline-offset: 2px; }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;scroll-behavior:smooth}
+    body{background:#060810;color:#e8e4d9;font-family:'Syne',sans-serif}
+    ::-webkit-scrollbar{width:4px}
+    ::-webkit-scrollbar-track{background:#0a0c14}
+    ::-webkit-scrollbar-thumb{background:#2a2d45;border-radius:2px}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+    .fade-up{animation:fadeUp .4s ease forwards}
+    pre{white-space:pre-wrap;word-break:break-word}
   </style>
 </head>
 <body>
-  <div id="root"></div>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect } = React;
 
-  <script type="text/babel">
-    const { useState } = React;
+const CATEGORIES = [
+  { id:"basics",    label:"Foundations",     color:"#ff6b35", icon:"◈" },
+  { id:"system",    label:"System Prompts",  color:"#7c3aed", icon:"⬡" },
+  { id:"temp",      label:"Creativity",      color:"#0ea5e9", icon:"◎" },
+  { id:"chain",     label:"Chaining",        color:"#10b981", icon:"⬢" },
+  { id:"coding",    label:"AI for Coding",   color:"#f59e0b", icon:"◆" },
+  { id:"image",     label:"Image Prompts",   color:"#ec4899", icon:"◉" },
+  { id:"business",  label:"Business",        color:"#14b8a6", icon:"◇" },
+  { id:"web",       label:"Web Dev",         color:"#8b5cf6", icon:"▣" },
+];
 
-    // ─── DATA ───────────────────────────────────────────────────────────────────
+const LESSONS = [
+  // ── FOUNDATIONS ──────────────────────────────────────────────────────────
+  {
+    id:1, cat:"basics",
+    title:"Be Specific & Clear",
+    tagline:"Precision is the first superpower.",
+    weak:"Write something about dogs.",
+    strong:"Write a 3-sentence description of a golden retriever puppy playing fetch in a park, for a pet adoption website aimed at families with children.",
+    why:"The strong prompt locks in: subject detail (golden retriever puppy, fetch, park), format (3 sentences), and audience (families with children on a pet adoption site). Every word removes ambiguity.",
+    rules:["State the exact subject","Set the format & length","Define who will read it"],
+    example:`❌  "Write about climate change."
+✅  "Write a 150-word explainer on rising sea levels for a 10-year-old, using one real-world analogy."`,
+  },
+  {
+    id:2, cat:"basics",
+    title:"Assign a Role",
+    tagline:"Who the AI 'is' shapes everything it says.",
+    weak:"Explain compound interest.",
+    strong:"You are a friendly high-school economics teacher. Explain compound interest to a 16-year-old using a simple savings account example. Keep it under 120 words.",
+    why:"Role + audience + constraint is a powerful trio. The role sets vocabulary and tone, the audience calibrates complexity, and the word limit forces clarity.",
+    rules:["Start with 'You are a [role]...'","Match role to the reader's needs","Add a word/tone constraint"],
+    example:`❌  "Explain machine learning."
+✅  "You are a senior ML engineer. Explain overfitting to a junior developer in 3 bullet points with one code analogy."`,
+  },
+  {
+    id:3, cat:"basics",
+    title:"Few-Shot Examples",
+    tagline:"Show, don't just tell.",
+    weak:"Convert these sentences to formal English.",
+    strong:`Convert these sentences to formal English.
 
-    const lessons = [
-      {
-        id: 1,
-        title: "Be Specific & Clear",
-        concept: "Vague prompts yield vague results. Specific prompts yield specific results.",
-        bad: "Write something about dogs.",
-        good: "Write a 3-sentence description of a golden retriever puppy playing fetch in a park, aimed at a pet adoption website.",
-        explanation: "The improved prompt specifies: format (3 sentences), subject details (golden retriever puppy, fetch, park), and context (pet adoption website).",
-        tips: ["Specify format and length", "Include relevant context", "Define the audience or purpose"],
-      },
-      {
-        id: 2,
-        title: "Assign a Role",
-        concept: "Telling the AI who to 'be' shapes tone, vocabulary, and expertise level.",
-        bad: "Explain quantum entanglement.",
-        good: "You are a physics professor teaching a first-year college student. Explain quantum entanglement using a simple analogy, in under 100 words.",
-        explanation: "Role assignment sets the communication style. The analogy constraint and word limit further sharpen the output.",
-        tips: ["Use 'You are a [role]...' at the start", "Match the role to the audience", "Roles unlock domain-specific reasoning"],
-      },
-      {
-        id: 3,
-        title: "Use Examples (Few-Shot)",
-        concept: "Showing examples of the desired output dramatically improves accuracy.",
-        bad: "Convert these sentences to formal English.",
-        good: `Convert these sentences to formal English.\n\nExample:\nInput: "Gonna grab coffee, wanna come?"\nOutput: "I am going to get coffee. Would you like to join me?"\n\nNow convert: "Hey, can u fix this ASAP?"`,
-        explanation: "The example teaches the model the exact transformation style you want — tone, punctuation, and structure.",
-        tips: ["1–3 examples is often enough", "Examples define style implicitly", "Use consistent formatting"],
-      },
-      {
-        id: 4,
-        title: "Chain of Thought",
-        concept: "Ask the model to reason step-by-step before giving a final answer.",
-        bad: "Is 17 a prime number?",
-        good: `Is 17 a prime number? Think through this step by step before answering.\n\nStep 1: List divisors of 17 from 2 to √17 (≈4.1).\nStep 2: Check 2, 3, 4 — none divide evenly.\nStep 3: Conclude.`,
-        explanation: "Chain-of-thought prompting reduces errors on reasoning tasks. Adding 'think step by step' often works even without spelling out the steps.",
-        tips: ["Add 'think step by step'", "Great for math, logic, planning", "Longer reasoning = fewer errors"],
-      },
-      {
-        id: 5,
-        title: "Constrain the Output",
-        concept: "Format constraints make responses easier to parse and use programmatically.",
-        bad: "List some programming languages.",
-        good: `List 5 programming languages as a JSON array. Each item should have:\n- "name": the language name\n- "year": year first released\n- "use_case": one primary use case\n\nReturn only the JSON with no explanation.`,
-        explanation: "Structured output is essential for pipelines. Specifying format, fields, and 'no explanation' removes unwanted noise.",
-        tips: ["Specify JSON, markdown, CSV, or custom formats", "Use 'return only X' to remove preamble", "Define fields explicitly"],
-      },
-      {
-        id: 6,
-        title: "Iterative Refinement",
-        concept: "Prompt engineering is a loop — test, analyze gaps, and refine.",
-        bad: "Just send the same prompt again if it doesn't work.",
-        good: `Initial: "Summarize this article."\n→ Output too long\n\nRefined: "Summarize this article in exactly 2 sentences."\n→ Missing key point\n\nRefined: "Summarize this article in exactly 2 sentences, making sure to include the main conclusion."`,
-        explanation: "Each iteration diagnoses one specific problem. Don't rewrite everything — identify the constraint that's missing and add it.",
-        tips: ["Change one variable at a time", "Diagnose before refining", "Keep a log of what worked"],
-      },
-    ];
+Example:
+Input: "Gonna grab coffee, wanna come?"
+Output: "I am going to get coffee. Would you like to join me?"
 
-    const quizzes = [
-      {
-        id: 1,
-        question: "Which prompt is more likely to get a useful code review?",
-        options: [
-          "Review my code.",
-          "Review this Python function for readability and performance. Suggest 2–3 specific improvements with code examples.",
-          "Make my code better.",
-          "Check for bugs.",
-        ],
-        answer: 1,
-        explanation: "Option B specifies the language, the review dimensions (readability + performance), the format (2–3 suggestions), and asks for code examples.",
-      },
-      {
-        id: 2,
-        question: "What does 'few-shot prompting' mean?",
-        options: [
-          "Using short prompts",
-          "Sending multiple requests at once",
-          "Providing examples of desired input/output pairs in the prompt",
-          "Asking for brief responses",
-        ],
-        answer: 2,
-        explanation: "Few-shot prompting means including 1–3 examples of the task you want performed, so the model learns the pattern from demonstration.",
-      },
-      {
-        id: 3,
-        question: "You want the AI to return only a JSON object with no extra text. What should you add?",
-        options: [
-          "Please be concise.",
-          "Return only valid JSON with no explanation or additional text.",
-          "Format your response nicely.",
-          "Be structured.",
-        ],
-        answer: 1,
-        explanation: "Being explicit about format AND suppressing extras ('no explanation') is the most reliable approach for clean structured output.",
-      },
-      {
-        id: 4,
-        question: "When is 'chain of thought' prompting most useful?",
-        options: [
-          "Writing creative fiction",
-          "Translating languages",
-          "Solving multi-step reasoning, math, or logic problems",
-          "Generating lists",
-        ],
-        answer: 2,
-        explanation: "Chain-of-thought shines on tasks requiring sequential reasoning. It forces the model to 'show its work' before concluding.",
-      },
-    ];
+Now convert: "Hey, can u fix this ASAP pls?"`,
+    why:"One well-chosen example teaches tone, structure, and style simultaneously. The model learns your transformation pattern instantly — no lengthy description needed.",
+    rules:["Use 1–3 input/output examples","Keep examples consistent in style","Place examples before the actual task"],
+    example:`❌  "Label these tweets as positive or negative."
+✅  "Label sentiment.\nInput: 'Love this product!' → Output: Positive\nInput: 'Worst experience ever.' → Output: Negative\nNow label: 'It was okay I guess.'"`,
+  },
+  {
+    id:4, cat:"basics",
+    title:"Chain of Thought",
+    tagline:"Make the AI show its work.",
+    weak:"What's 15% tip on a $47 dinner?",
+    strong:"What's 15% tip on a $47 dinner? Think through this step by step before giving the final answer.",
+    why:"Adding 'think step by step' forces the model to reason sequentially, dramatically reducing errors on math, logic, and multi-step tasks. The answer is the last step — not a guess.",
+    rules:["Add 'think step by step'","Ask for reasoning before the answer","Use for math, logic, planning tasks"],
+    example:`❌  "Should I use REST or GraphQL for my app?"
+✅  "Should I use REST or GraphQL for my app? Consider: team size (2 devs), mobile clients, data complexity. Think through trade-offs step by step, then recommend."`,
+  },
 
-    // ─── APP ─────────────────────────────────────────────────────────────────────
+  // ── SYSTEM PROMPTS ────────────────────────────────────────────────────────
+  {
+    id:5, cat:"system",
+    title:"What Is a System Prompt?",
+    tagline:"The invisible instruction layer that shapes every reply.",
+    weak:"(No system prompt — just ask questions directly)",
+    strong:`SYSTEM: You are Aria, a concise technical support agent for a SaaS product. Always respond in plain English. Never use jargon. If you don't know something, say "I'll need to check on that." Keep replies under 80 words.
 
-    function App() {
-      const [activeTab, setActiveTab]           = useState("learn");
-      const [currentLesson, setCurrentLesson]   = useState(0);
-      const [showExplanation, setShowExplanation] = useState(false);
-      const [quizIndex, setQuizIndex]           = useState(0);
-      const [selected, setSelected]             = useState(null);
-      const [quizScore, setQuizScore]           = useState(0);
-      const [quizDone, setQuizDone]             = useState(false);
-      const [sandboxPrompt, setSandboxPrompt]   = useState("");
-      const [sandboxAnalysis, setSandboxAnalysis] = useState(null);
+USER: My dashboard isn't loading.`,
+    why:"A system prompt is sent before any user message. It defines the AI's persona, rules, tone, and constraints for the entire conversation — like writing the job description before the employee starts.",
+    rules:["Set persona, tone, and limits in the system prompt","Rules in the system prompt override user requests","Use it to prevent off-topic responses"],
+    example:`SYSTEM: You are a recipe assistant. Only discuss food and cooking. If asked about anything else, politely redirect to recipes.
 
-      const lesson = lessons[currentLesson];
-      const quiz   = quizzes[quizIndex];
+USER: What's the best Python framework?
+AI: That's outside my cooking expertise! Can I help you with a recipe instead?`,
+  },
+  {
+    id:6, cat:"system",
+    title:"System Prompt Design Patterns",
+    tagline:"Four templates that cover 90% of use cases.",
+    weak:"Just describe what you want in each message.",
+    strong:`Pattern 1 — Customer Support:
+"You are [Brand] support. Be empathetic, concise, solution-focused. Escalate billing issues."
 
-      const analyzePrompt = (text) => {
-        const checks = [
-          { label: "Specifies format or length",        pass: /\b(sentence|word|paragraph|list|json|bullet|format|length|\d+)\b/i.test(text) },
-          { label: "Includes context or purpose",       pass: text.length > 60 },
-          { label: "Assigns a role",                    pass: /\b(you are|act as|as a|as an)\b/i.test(text) },
-          { label: "Uses examples",                     pass: /\b(example|for instance|e\.g\.|input:|output:)\b/i.test(text) },
-          { label: "Requests step-by-step reasoning",   pass: /\b(step by step|think through|reason|explain how)\b/i.test(text) },
-          { label: "Constrains output type",            pass: /\b(only|no explanation|return|respond with|just)\b/i.test(text) },
-        ];
-        return { checks, score: checks.filter(c => c.pass).length };
-      };
+Pattern 2 — Content Writer:
+"You write SEO blog posts. Always include: hook, 3 sections, CTA. Tone: conversational."
 
-      const handleQuizSelect = (idx) => {
-        if (selected !== null) return;
-        setSelected(idx);
-        if (idx === quiz.answer) setQuizScore(s => s + 1);
-      };
+Pattern 3 — Code Reviewer:
+"Review code for: security, performance, readability. Output: numbered issues + fix suggestions."
 
-      const handleNextQuiz = () => {
-        if (quizIndex + 1 >= quizzes.length) { setQuizDone(true); }
-        else { setQuizIndex(q => q + 1); setSelected(null); }
-      };
+Pattern 4 — Tutor:
+"You are a Socratic tutor. Never give answers directly. Ask guiding questions instead."`,
+    why:"Each pattern pre-wires the AI's behavior so every user message gets a consistent, role-appropriate response without repeating instructions every time.",
+    rules:["Define the persona in one sentence","List 2–4 behavioral rules","Specify the output format"],
+    example:`SYSTEM: You are a hiring assistant. Extract from resumes: name, skills, years of experience. Output as JSON only. No commentary.`,
+  },
 
-      const resetQuiz = () => { setQuizIndex(0); setSelected(null); setQuizScore(0); setQuizDone(false); };
+  // ── TEMPERATURE & CREATIVITY ──────────────────────────────────────────────
+  {
+    id:7, cat:"temp",
+    title:"Understanding Temperature",
+    tagline:"The dial between predictable and creative.",
+    weak:"Just run the prompt and hope for the best.",
+    strong:`Low temp (0.1–0.3) → Factual, consistent, safe
+"Summarize this legal clause." → Use low temp
 
-      // ── shared styles ──
-      const btn = (active, color="#e94560") => ({
-        padding: "8px 20px",
-        border: `1.5px solid ${active ? color : "#333"}`,
-        background: active ? color : "transparent",
-        color: active ? "#fff" : "#888",
-        borderRadius: 3,
-        cursor: "pointer",
-        fontSize: 13,
-        fontFamily: "monospace",
-        letterSpacing: 1,
-        textTransform: "uppercase",
-        transition: "all 0.15s",
-      });
+Medium temp (0.5–0.7) → Balanced, helpful
+"Write a product description." → Use medium temp
 
-      return (
-        <div style={{ minHeight: "100vh", background: "#0b0c10" }}>
+High temp (0.8–1.0) → Creative, surprising, varied
+"Write 5 wildly different taglines for a coffee brand." → Use high temp`,
+    why:"Temperature controls randomness. Low = the model picks the most probable word each time (deterministic). High = it samples from a wider pool, producing unexpected combinations. Match it to your task.",
+    rules:["Facts/code/data → low temperature","Creative/brainstorm → high temperature","Default (0.7) works for most tasks"],
+    example:`Low temp prompt: "List the 5 most common JavaScript errors with one-line fixes."
+High temp prompt: "Invent 3 fictional startup names for a company that delivers hot soup by drone."`,
+  },
+  {
+    id:8, cat:"temp",
+    title:"Prompting for Creativity",
+    tagline:"Unlock unexpected ideas with the right constraints.",
+    weak:"Give me some creative ideas for my app.",
+    strong:`Generate 5 unconventional app name ideas for a meditation app targeting Gen Z. 
+Rules:
+- Must feel edgy, not corporate
+- Max 2 words each
+- One can be a made-up word
+- Avoid: calm, zen, peace, breathe`,
+    why:"Paradoxically, creative prompts work better with constraints. Saying what NOT to do eliminates clichés. Specifying count, style, and audience prevents generic outputs.",
+    rules:["Set a count (5 ideas, 3 options)","Define the style or vibe","Use 'avoid:' to block clichés"],
+    example:`❌  "Give me tagline ideas."
+✅  "Write 6 taglines for a coffee brand. Tone: witty, self-aware. Avoid: 'wake up', 'morning', 'energy'. Each under 8 words."`,
+  },
 
-          {/* ── HEADER ── */}
-          <div style={{
-            background: "linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)",
-            borderBottom: "2px solid #e94560",
-            padding: "28px 32px 20px",
-          }}>
-            <div style={{ maxWidth: 860, margin: "0 auto" }}>
-              <div style={{ fontSize:11, letterSpacing:4, color:"#e94560", textTransform:"uppercase", fontFamily:"monospace", marginBottom:4 }}>Master</div>
-              <h1 style={{ fontSize:36, fontWeight:700, color:"#f0ede8", letterSpacing:"-0.5px", marginBottom:6 }}>Prompt Engineering</h1>
-              <p style={{ color:"#9a9a8a", fontSize:14, fontFamily:"monospace", marginBottom:20 }}>Learn to write prompts that get results</p>
-              <div style={{ display:"flex", gap:4 }}>
-                {["learn","quiz","sandbox"].map(tab => (
-                  <button key={tab} onClick={() => setActiveTab(tab)} style={btn(activeTab===tab)}>{tab}</button>
-                ))}
-              </div>
+  // ── PROMPT CHAINING ───────────────────────────────────────────────────────
+  {
+    id:9, cat:"chain",
+    title:"What Is Prompt Chaining?",
+    tagline:"Break complex tasks into a relay race of prompts.",
+    weak:"Write a complete blog post about AI trends with research, outline, and SEO optimization.",
+    strong:`Step 1 → Research prompt:
+"List 5 major AI trends in 2024 with one key stat each."
+
+Step 2 → Outline prompt:
+"Using these trends: [paste Step 1 output], create a blog post outline with intro, 5 sections, conclusion."
+
+Step 3 → Write prompt:
+"Write the introduction section based on this outline: [paste Step 2 output]. 150 words, hook with a surprising stat."
+
+Step 4 → SEO prompt:
+"Suggest 5 SEO keywords and a meta description for this blog post: [paste draft]"`,
+    why:"One giant prompt produces mediocre results. Chaining breaks the task into focused steps — each prompt does one job well, and the output feeds the next prompt.",
+    rules:["One job per prompt","Pass output as input to the next step","Review at each step before continuing"],
+    example:`Chain for writing a cold email:
+1. Research → "What pain points do CTOs at Series A startups have?"
+2. Draft → "Write a cold email addressing: [pain points]"
+3. Refine → "Make this email 30% shorter and add a specific CTA"`,
+  },
+  {
+    id:10, cat:"chain",
+    title:"The Refinement Loop",
+    tagline:"Your first prompt is just a draft.",
+    weak:"Send the same prompt again hoping for a better result.",
+    strong:`Round 1: "Summarize this article."
+→ Problem: too long, 400 words
+
+Round 2: "Summarize this article in exactly 3 sentences."
+→ Problem: misses the key conclusion
+
+Round 3: "Summarize this article in exactly 3 sentences. The last sentence must state the author's main conclusion."
+→ ✅ Perfect
+
+Diagnosis method:
+What's wrong? → What constraint fixes it? → Add that constraint.`,
+    why:"Each refinement adds exactly one missing constraint. Don't rewrite the whole prompt — diagnose the specific gap and patch it. Keep a log of what worked.",
+    rules:["Change one thing at a time","Diagnose before refining","Save prompts that work — build a library"],
+    example:`v1: "Write a Python function to sort a list."
+v2: "Write a Python function to sort a list of dicts by a given key. Include a docstring."
+v3: "...Handle the case where the key doesn't exist. Raise a clear ValueError."`,
+  },
+
+  // ── AI FOR CODING ─────────────────────────────────────────────────────────
+  {
+    id:11, cat:"coding",
+    title:"Prompting for Code Generation",
+    tagline:"Treat the AI like a senior dev pair programming with you.",
+    weak:"Write a login function.",
+    strong:`Write a Python function called authenticate_user that:
+- Takes email (str) and password (str) as arguments
+- Hashes the password using bcrypt
+- Queries a SQLite database (users table with columns: id, email, password_hash)
+- Returns the user dict on success, or raises AuthError on failure
+- Include type hints and a docstring
+- Do NOT use raw SQL strings — use parameterized queries`,
+    why:"Code prompts need: function name, input/output types, dependencies/libraries, security requirements, and error handling. Each missing detail introduces a bug or insecurity.",
+    rules:["Name the function and its parameters","Specify the library/framework","Include error handling requirements"],
+    example:`❌  "Write a function to fetch data from an API."
+✅  "Write an async Python function fetch_user(user_id: int) using httpx. Hit GET https://api.example.com/users/{id}. Return parsed JSON. Raise HTTPError on non-200 status. Include retry logic (3 attempts)."`,
+  },
+  {
+    id:12, cat:"coding",
+    title:"Prompting for Code Review & Debugging",
+    tagline:"Get surgical feedback, not vague suggestions.",
+    weak:"Review my code.",
+    strong:`Review this JavaScript function for:
+1. Security vulnerabilities (especially XSS and injection)
+2. Performance issues (unnecessary re-renders, memory leaks)
+3. Readability (naming, complexity)
+
+For each issue found:
+- Quote the exact line
+- Explain why it's a problem
+- Show the fixed version
+
+[paste code here]`,
+    why:"Specifying review dimensions prevents generic feedback. Asking for exact line quotes + fix forces actionable output, not just observations.",
+    rules:["Name the specific review dimensions","Ask for 'quote line + fix' format","Specify language and framework"],
+    example:`"Debug this React useEffect. It causes infinite re-renders.
+Expected: fetch user data once on mount.
+Actual: keeps fetching on every render.
+[paste code]
+Explain the root cause, then show the fix."`,
+  },
+  {
+    id:13, cat:"coding",
+    title:"Prompting for Tests & Documentation",
+    tagline:"Save hours with AI-generated tests and docs.",
+    weak:"Write tests for my code.",
+    strong:`Write Jest unit tests for this function:
+[paste function]
+
+Requirements:
+- Test: happy path (valid input)
+- Test: edge case (empty array input)
+- Test: error case (null input → should throw TypeError)
+- Use describe/it blocks with descriptive names
+- Mock any external dependencies
+- Add a comment explaining what each test verifies`,
+    why:"Tests need explicit coverage of happy path, edge cases, and error cases. Without specifying these, the AI will only write one basic test.",
+    rules:["Specify happy path + edge case + error case","Name the testing framework","Ask for descriptive test names"],
+    example:`"Write JSDoc comments for this function. Include: @param types, @returns, @throws, and one @example showing a real use case."`,
+  },
+
+  // ── IMAGE PROMPTS ─────────────────────────────────────────────────────────
+  {
+    id:14, cat:"image",
+    title:"Text-to-Image Prompt Basics",
+    tagline:"Images are built from layers of description.",
+    weak:"A cat in a forest.",
+    strong:"A majestic white cat with amber eyes sitting on a mossy log in a misty ancient forest, golden hour light filtering through tall cedar trees, photorealistic, 8K, shallow depth of field, National Geographic style",
+    why:"Image prompts stack: Subject → Setting → Lighting → Style → Quality modifiers. Each layer adds visual specificity. The AI can't guess what you mean by 'beautiful' — describe the actual visual elements.",
+    rules:["Subject + Setting + Lighting + Style","Add quality words: photorealistic, 8K, cinematic","Name a visual style or artist reference"],
+    example:`❌  "A futuristic city"
+✅  "A neon-lit cyberpunk city at night, rain-slicked streets reflecting pink and blue signs, flying cars in the distance, shot from street level, Blade Runner aesthetic, ultra-detailed, cinematic"`,
+  },
+  {
+    id:15, cat:"image",
+    title:"Advanced Image Prompt Techniques",
+    tagline:"Control composition, mood, and medium.",
+    weak:"A portrait of a woman.",
+    strong:`Subject: A 30-year-old South Asian woman with short hair
+Expression: thoughtful, slight smile
+Lighting: soft Rembrandt lighting from the left
+Background: blurred warm-toned studio
+Medium: oil painting in the style of John Singer Sargent
+Aspect ratio: portrait (2:3)
+Negative prompt: cartoon, anime, distorted hands, watermark`,
+    why:"Advanced image prompts add: lighting type, medium/style reference, aspect ratio, and a negative prompt (what to exclude). Negative prompts are as powerful as positive ones.",
+    rules:["Specify lighting type (Rembrandt, golden hour, neon)","Name the medium (oil painting, watercolor, photo)","Use negative prompts to exclude unwanted elements"],
+    example:`Negative prompts to always include:
+"...blurry, low quality, watermark, text, extra fingers, distorted face"
+
+Style references:
+"in the style of Wes Anderson" → symmetrical, pastel, quirky
+"shot on Kodak Portra 400" → film grain, warm tones`,
+  },
+
+  // ── BUSINESS PROMPTS ─────────────────────────────────────────────────────
+  {
+    id:16, cat:"business",
+    title:"Prompting for Business Writing",
+    tagline:"Tone, audience, and purpose are everything.",
+    weak:"Write an email about the project delay.",
+    strong:`Write a professional email to a client (enterprise software company, CTO audience) about a 2-week delay in our product launch.
+
+Tone: Transparent but confident
+Structure:
+1. Acknowledge the delay directly (no excuses)
+2. Explain the reason in one sentence (technical debt in authentication module)
+3. State the new timeline (March 15)
+4. List 2 things we're doing to prevent future delays
+5. End with a proactive offer (call this week)
+
+Length: Under 200 words. No corporate jargon.`,
+    why:"Business writing prompts need: recipient context, tone, exact structure, and length. The structure list removes all ambiguity about what goes in the email.",
+    rules:["Define recipient + their role","Specify tone (transparent, urgent, empathetic)","Give the exact structure as a numbered list"],
+    example:`"Write a LinkedIn post announcing our Series A funding ($5M). Audience: potential hires and customers. Tone: excited but humble. Include: what we're building, team size, what we'll use the money for. End with a job link CTA. Under 150 words."`,
+  },
+  {
+    id:17, cat:"business",
+    title:"Prompting for Analysis & Strategy",
+    tagline:"Use AI as a thinking partner, not just a writer.",
+    weak:"Should we expand to the European market?",
+    strong:`Act as a business strategy consultant. Analyze whether our B2B SaaS company (50 employees, $2M ARR, US-based, HR software) should expand to Europe.
+
+Framework to use: SWOT analysis
+Consider: GDPR compliance costs, currency risk, support timezone gaps, existing EU competitors (Personio, Factorial)
+
+Output format:
+- SWOT table (2 points per quadrant)
+- Top 3 risks
+- Recommendation with confidence level (high/medium/low)
+- One alternative to full expansion`,
+    why:"Strategy prompts work best when you: provide a framework (SWOT, PESTLE), give company context, name known competitors, and specify a structured output format.",
+    rules:["Give company context (size, revenue, industry)","Specify an analytical framework","Ask for a recommendation + confidence level"],
+    example:`"Using the Jobs-to-be-Done framework, analyze why customers churn from our product in month 2. We know: onboarding takes 3 days, the main feature used is reporting, competitors offer CSV export we don't. List top 3 churn reasons and one fix for each."`,
+  },
+
+  // ── WEB DEVELOPMENT ───────────────────────────────────────────────────────
+  {
+    id:18, cat:"web",
+    title:"Prompting for HTML & CSS",
+    tagline:"Describe layout and design like a designer briefing a developer.",
+    weak:"Make a hero section for my website.",
+    strong:`Build a hero section in HTML and CSS with:
+
+Layout: Full-width, vertically centered content, min-height 100vh
+Left side (60%): 
+  - H1: "Build Faster." (font-size: 64px, font-weight: 800)
+  - Subtitle: one line of body text
+  - Two buttons: "Get Started" (filled, #6366f1) and "See Demo" (outlined)
+Right side (40%): placeholder image box (400x400, rounded corners, background #e0e7ff)
+
+Design system:
+  - Background: #0f172a (dark navy)
+  - Text: #f8fafc
+  - Use CSS Grid for layout
+  - Mobile responsive (stack vertically under 768px)
+  - No external libraries`,
+    why:"Web dev prompts need: exact layout structure, dimensions, colors (as hex), responsive behavior, and tech constraints (no libraries). Think like you're writing a design spec.",
+    rules:["Give exact colors as hex codes","Specify layout method (Grid, Flexbox)","Define responsive breakpoints"],
+    example:`"Create a CSS card component: 320px wide, white background, 16px border-radius, box-shadow, 24px padding. Contains: image (full width, 200px tall, object-fit cover), H3 title, body text, tag pill (background #eff6ff, text #3b82f6). Hover: lift shadow effect."`,
+  },
+  {
+    id:19, cat:"web",
+    title:"Prompting for JavaScript & Interactivity",
+    tagline:"Specify behavior, events, and edge cases precisely.",
+    weak:"Add a search bar to my website.",
+    strong:`Add a live search feature to this HTML list:
+[paste HTML with <ul id="product-list"> containing <li> items]
+
+Behavior:
+- Filter list items in real-time as user types (keyup event)
+- Case-insensitive matching
+- If no results: show a "No products found" message inside the list
+- Highlight the matching text in yellow within each visible result
+- Debounce: wait 200ms after user stops typing before filtering
+- Clear button (×) appears when input has text; clears search on click
+
+Vanilla JS only. No jQuery. Add comments explaining each section.`,
+    why:"Interactivity prompts must describe: the trigger event, the exact behavior, edge cases (no results), performance (debounce), and accessibility. Each missing item creates a broken feature.",
+    rules:["Name the exact event (keyup, click, submit)","Describe edge cases explicitly","Specify vanilla JS vs framework"],
+    example:`"Build a modal dialog in vanilla JS. Opens on button click. Closes on: X button, Escape key, or clicking outside. Traps focus inside while open (accessibility). Fade in/out animation using CSS transitions."`,
+  },
+  {
+    id:20, cat:"web",
+    title:"Full Website Prompt Strategy",
+    tagline:"Chain prompts to build a complete site step by step.",
+    weak:"Build me a website for my business.",
+    strong:`Phase 1 — Structure:
+"Create the HTML skeleton for a 5-page business website: Home, About, Services, Portfolio, Contact. Use semantic HTML5 elements. Include nav with mobile hamburger menu placeholder."
+
+Phase 2 — Design system:
+"Create a CSS file with variables for: 2 brand colors, 2 fonts, spacing scale (8px base), breakpoints (768px, 1024px). Apply to the HTML skeleton."
+
+Phase 3 — Components:
+"Build the hero section [spec]. Then the services grid [spec]. Then the contact form [spec]."
+
+Phase 4 — JavaScript:
+"Add: smooth scroll, hamburger menu toggle, form validation, scroll-triggered fade-in animations."
+
+Phase 5 — Polish:
+"Review the full code for: accessibility (alt tags, ARIA), performance (image lazy loading), and SEO (meta tags, structured data)."`,
+    why:"A full website is too complex for one prompt. The 5-phase chain produces clean, maintainable code because each phase has a single clear responsibility.",
+    rules:["Structure first, style second, behavior third","One component per prompt in Phase 3","Always end with an accessibility + SEO review"],
+    example:`Each phase prompt should reference previous output:
+"Using the design system from Phase 2 and the HTML structure from Phase 1, build the About page section with a two-column layout: team photo left, bio text right."`,
+  },
+];
+
+// ── COMPONENT ─────────────────────────────────────────────────────────────────
+
+export default function App() {
+  const [activeCat, setActiveCat]       = useState("all");
+  const [activeLesson, setActiveLesson] = useState(null);
+  const [showStrong, setShowStrong]     = useState(false);
+  const [showWhy, setShowWhy]           = useState(false);
+  const [progress, setProgress]         = useState(() => {
+    try { return JSON.parse(localStorage.getItem("pe_progress")||"[]"); } catch { return []; }
+  });
+
+  const filtered = activeCat === "all" ? LESSONS : LESSONS.filter(l => l.cat === activeCat);
+  const cat = CATEGORIES.find(c => c.id === (activeLesson?.cat)) || CATEGORIES[0];
+
+  const markDone = (id) => {
+    const next = progress.includes(id) ? progress.filter(x=>x!==id) : [...progress, id];
+    setProgress(next);
+    try { localStorage.setItem("pe_progress", JSON.stringify(next)); } catch {}
+  };
+
+  const openLesson = (lesson) => {
+    setActiveLesson(lesson);
+    setShowStrong(false);
+    setShowWhy(false);
+    window.scrollTo({top:0, behavior:"smooth"});
+  };
+
+  const navLesson = (dir) => {
+    const idx = LESSONS.findIndex(l => l.id === activeLesson.id);
+    const next = LESSONS[idx + dir];
+    if (next) openLesson(next);
+  };
+
+  // ── LESSON DETAIL VIEW ────────────────────────────────────────────────────
+  if (activeLesson) {
+    const lessonCat = CATEGORIES.find(c => c.id === activeLesson.cat);
+    const done = progress.includes(activeLesson.id);
+    const idx = LESSONS.findIndex(l => l.id === activeLesson.id);
+
+    return (
+      <div style={{ minHeight:"100vh", background:"#060810" }}>
+        {/* top bar */}
+        <div style={{ background:"#0a0c18", borderBottom:"1px solid #1a1d30", padding:"14px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:10 }}>
+          <button onClick={() => setActiveLesson(null)} style={{ background:"transparent", border:"1px solid #2a2d45", color:"#a0a8c0", padding:"6px 14px", borderRadius:6, cursor:"pointer", fontFamily:"'JetBrains Mono',monospace", fontSize:12 }}>
+            ← Back
+          </button>
+          <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:11, color: lessonCat.color, letterSpacing:2 }}>
+            {lessonCat.icon} {lessonCat.label.toUpperCase()}
+          </span>
+          <button onClick={() => markDone(activeLesson.id)} style={{ background: done?"#10b981":"transparent", border:`1px solid ${done?"#10b981":"#2a2d45"}`, color: done?"#fff":"#a0a8c0", padding:"6px 14px", borderRadius:6, cursor:"pointer", fontFamily:"'JetBrains Mono',monospace", fontSize:12 }}>
+            {done ? "✓ Done" : "Mark Done"}
+          </button>
+        </div>
+
+        <div style={{ maxWidth:800, margin:"0 auto", padding:"32px 20px 80px" }} className="fade-up">
+          {/* lesson header */}
+          <div style={{ marginBottom:32 }}>
+            <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:11, color:"#4a4d6a", marginBottom:8 }}>
+              LESSON {activeLesson.id} OF {LESSONS.length}
+            </div>
+            <h1 style={{ fontSize:36, fontWeight:800, color:"#f0ece0", lineHeight:1.1, marginBottom:10 }}>
+              {activeLesson.title}
+            </h1>
+            <p style={{ fontSize:16, color:"#7a80a0", fontStyle:"italic" }}>{activeLesson.tagline}</p>
+          </div>
+
+          {/* WEAK prompt */}
+          <div style={{ marginBottom:16 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+              <span style={{ color:"#ef4444", fontSize:18 }}>✗</span>
+              <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:11, color:"#ef4444", letterSpacing:2 }}>WEAK PROMPT</span>
+            </div>
+            <div style={{ background:"#120808", border:"1px solid #3a1515", borderRadius:10, padding:"18px 20px" }}>
+              <pre style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:13, color:"#c08080", lineHeight:1.7 }}>{activeLesson.weak}</pre>
             </div>
           </div>
 
-          <div style={{ maxWidth:860, margin:"0 auto", padding:"32px 24px" }}>
-
-            {/* ══ LEARN ══════════════════════════════════════════════════════════ */}
-            {activeTab === "learn" && (
-              <div>
-                {/* progress dots */}
-                <div style={{ display:"flex", gap:6, marginBottom:28 }}>
-                  {lessons.map((l,i) => (
-                    <button key={l.id} onClick={() => { setCurrentLesson(i); setShowExplanation(false); }}
-                      style={{ flex:1, height:6, border:"none", borderRadius:3, cursor:"pointer", transition:"background .2s",
-                        background: i===currentLesson ? "#e94560" : i<currentLesson ? "#4a4a6a" : "#1e1e2e" }} />
-                  ))}
-                </div>
-
-                <div style={{ marginBottom:8 }}>
-                  <span style={{ fontSize:11, color:"#e94560", fontFamily:"monospace", letterSpacing:3, textTransform:"uppercase" }}>
-                    Lesson {lesson.id} of {lessons.length}
-                  </span>
-                  <h2 style={{ margin:"6px 0 4px", fontSize:26, color:"#f0ede8" }}>{lesson.title}</h2>
-                  <p style={{ color:"#8a8a7a", margin:"0 0 24px", fontStyle:"italic", fontSize:15 }}>{lesson.concept}</p>
-                </div>
-
-                {/* bad vs good */}
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:20 }}>
-                  {[
-                    { label:"Weak Prompt", icon:"✗", iconColor:"#e94560", bg:"#1a0808", border:"#5a1a1a", textColor:"#c0a0a0", content:lesson.bad },
-                    { label:"Strong Prompt", icon:"✓", iconColor:"#4aed88", bg:"#081a0e", border:"#1a5a2a", textColor:"#a0c0a8", content:lesson.good },
-                  ].map(({ label,icon,iconColor,bg,border,textColor,content }) => (
-                    <div key={label} style={{ background:bg, border:`1px solid ${border}`, borderRadius:8, padding:20 }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
-                        <span style={{ color:iconColor, fontSize:16 }}>{icon}</span>
-                        <span style={{ color:iconColor, fontFamily:"monospace", fontSize:11, letterSpacing:2, textTransform:"uppercase" }}>{label}</span>
-                      </div>
-                      <pre style={{ margin:0, whiteSpace:"pre-wrap", fontFamily:"monospace", fontSize:13, color:textColor, lineHeight:1.6 }}>{content}</pre>
-                    </div>
-                  ))}
-                </div>
-
-                {/* explanation toggle */}
-                <button onClick={() => setShowExplanation(e => !e)} style={{
-                  background:"transparent", border:"1.5px solid #e94560", color:"#e94560",
-                  padding:"10px 24px", borderRadius:4, cursor:"pointer",
-                  fontFamily:"monospace", fontSize:13, letterSpacing:1, marginBottom:16,
-                }}>
-                  {showExplanation ? "Hide Explanation" : "Why is this better? →"}
-                </button>
-
-                {showExplanation && (
-                  <div style={{ background:"#111420", border:"1px solid #2a2a4a", borderRadius:8, padding:20, marginBottom:20 }}>
-                    <p style={{ margin:"0 0 16px", color:"#c8c4be", lineHeight:1.7 }}>{lesson.explanation}</p>
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-                      {lesson.tips.map((tip,i) => (
-                        <span key={i} style={{ background:"#1e1e3a", border:"1px solid #3a3a6a", borderRadius:20,
-                          padding:"5px 14px", fontSize:12, color:"#a0a0d0", fontFamily:"monospace" }}>{tip}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* nav */}
-                <div style={{ display:"flex", gap:12, justifyContent:"space-between" }}>
-                  <button onClick={() => { setCurrentLesson(c => Math.max(0,c-1)); setShowExplanation(false); }}
-                    disabled={currentLesson===0}
-                    style={{ padding:"10px 24px", background:"transparent", border:"1.5px solid #333",
-                      color:currentLesson===0?"#444":"#888", borderRadius:4,
-                      cursor:currentLesson===0?"not-allowed":"pointer", fontFamily:"monospace" }}>
-                    ← Previous
-                  </button>
-                  {currentLesson < lessons.length-1
-                    ? <button onClick={() => { setCurrentLesson(c=>c+1); setShowExplanation(false); }}
-                        style={{ padding:"10px 28px", background:"#e94560", border:"none", color:"#fff",
-                          borderRadius:4, cursor:"pointer", fontFamily:"monospace", fontWeight:600, letterSpacing:1 }}>
-                        Next Lesson →
-                      </button>
-                    : <button onClick={() => setActiveTab("quiz")}
-                        style={{ padding:"10px 28px", background:"#4aed88", border:"none", color:"#0b0c10",
-                          borderRadius:4, cursor:"pointer", fontFamily:"monospace", fontWeight:700 }}>
-                        Take the Quiz →
-                      </button>
-                  }
-                </div>
+          {/* reveal strong */}
+          {!showStrong ? (
+            <button onClick={() => setShowStrong(true)} style={{ width:"100%", background:"linear-gradient(135deg,#1a1f3a,#0f1525)", border:`1.5px dashed ${lessonCat.color}44`, color:lessonCat.color, padding:"16px", borderRadius:10, cursor:"pointer", fontFamily:"'JetBrains Mono',monospace", fontSize:13, marginBottom:16, transition:"all .2s" }}>
+              Reveal Strong Prompt →
+            </button>
+          ) : (
+            <div style={{ marginBottom:16, animation:"fadeUp .3s ease" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+                <span style={{ color:"#22c55e", fontSize:18 }}>✓</span>
+                <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:11, color:"#22c55e", letterSpacing:2 }}>STRONG PROMPT</span>
               </div>
-            )}
-
-            {/* ══ QUIZ ═══════════════════════════════════════════════════════════ */}
-            {activeTab === "quiz" && (
-              <div>
-                {quizDone ? (
-                  <div style={{ textAlign:"center", padding:"40px 0" }}>
-                    <div style={{ fontSize:64, marginBottom:16 }}>{quizScore >= 3 ? "🎯" : "📚"}</div>
-                    <h2 style={{ color:"#f0ede8", margin:"0 0 8px" }}>{quizScore} / {quizzes.length} correct</h2>
-                    <p style={{ color:"#8a8a7a", marginBottom:28, fontFamily:"monospace" }}>
-                      {quizScore === quizzes.length
-                        ? "Perfect score! You've got the fundamentals down."
-                        : quizScore >= 2 ? "Good work. Review the lessons you missed."
-                        : "Keep studying — revisit the Learn section and try again."}
-                    </p>
-                    <div style={{ display:"flex", gap:12, justifyContent:"center" }}>
-                      <button onClick={resetQuiz} style={{ padding:"12px 28px", background:"#e94560", border:"none",
-                        color:"#fff", borderRadius:4, cursor:"pointer", fontFamily:"monospace", fontWeight:600 }}>
-                        Retry Quiz
-                      </button>
-                      <button onClick={() => setActiveTab("sandbox")} style={{ padding:"12px 28px",
-                        background:"transparent", border:"1.5px solid #4aed88", color:"#4aed88",
-                        borderRadius:4, cursor:"pointer", fontFamily:"monospace" }}>
-                        Try Sandbox →
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
-                      <span style={{ fontFamily:"monospace", color:"#e94560", fontSize:12, letterSpacing:3, textTransform:"uppercase" }}>
-                        Question {quizIndex+1} of {quizzes.length}
-                      </span>
-                      <span style={{ fontFamily:"monospace", color:"#4a4a6a", fontSize:12 }}>Score: {quizScore}</span>
-                    </div>
-
-                    <h2 style={{ color:"#f0ede8", fontSize:20, lineHeight:1.4, marginBottom:24 }}>{quiz.question}</h2>
-
-                    <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:24 }}>
-                      {quiz.options.map((opt, i) => {
-                        let bg="#111420", border="#2a2a4a", color="#c8c4be";
-                        if (selected !== null) {
-                          if (i === quiz.answer)                        { bg="#081a0e"; border="#4aed88"; color="#4aed88"; }
-                          else if (i===selected && selected!==quiz.answer) { bg="#1a0808"; border="#e94560"; color="#e94560"; }
-                        }
-                        return (
-                          <button key={i} onClick={() => handleQuizSelect(i)} style={{
-                            background:bg, border:`1.5px solid ${border}`, color,
-                            borderRadius:6, padding:"14px 18px", textAlign:"left",
-                            cursor:selected===null?"pointer":"default",
-                            fontFamily:"monospace", fontSize:13, lineHeight:1.5, transition:"all 0.15s",
-                          }}>
-                            <span style={{ marginRight:10, opacity:0.5 }}>{String.fromCharCode(65+i)}.</span>{opt}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {selected !== null && (
-                      <div style={{ background:"#111420", border:"1px solid #2a2a4a", borderRadius:8, padding:16, marginBottom:20 }}>
-                        <span style={{ fontFamily:"monospace", fontSize:11, letterSpacing:2,
-                          color: selected===quiz.answer ? "#4aed88" : "#e94560" }}>
-                          {selected===quiz.answer ? "✓ CORRECT — " : "✗ INCORRECT — "}
-                        </span>
-                        <span style={{ color:"#a0a0b0", fontSize:14 }}>{quiz.explanation}</span>
-                      </div>
-                    )}
-
-                    {selected !== null && (
-                      <button onClick={handleNextQuiz} style={{ padding:"10px 28px", background:"#e94560",
-                        border:"none", color:"#fff", borderRadius:4, cursor:"pointer",
-                        fontFamily:"monospace", fontWeight:600 }}>
-                        {quizIndex+1 < quizzes.length ? "Next Question →" : "See Results →"}
-                      </button>
-                    )}
-                  </div>
-                )}
+              <div style={{ background:"#081408", border:"1px solid #15401a", borderRadius:10, padding:"18px 20px" }}>
+                <pre style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:13, color:"#90d4a0", lineHeight:1.7 }}>{activeLesson.strong}</pre>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* ══ SANDBOX ════════════════════════════════════════════════════════ */}
-            {activeTab === "sandbox" && (
-              <div>
-                <h2 style={{ color:"#f0ede8", marginTop:0, marginBottom:6 }}>Prompt Analyzer</h2>
-                <p style={{ color:"#8a8a7a", fontFamily:"monospace", fontSize:13, marginBottom:24 }}>
-                  Write a prompt and get instant feedback on its quality.
-                </p>
-
-                <textarea
-                  value={sandboxPrompt}
-                  onChange={e => { setSandboxPrompt(e.target.value); setSandboxAnalysis(null); }}
-                  placeholder="Type your prompt here…"
-                  style={{ width:"100%", minHeight:160, background:"#111420", border:"1.5px solid #2a2a4a",
-                    borderRadius:8, padding:16, color:"#e8e6e0", fontFamily:"monospace",
-                    fontSize:14, lineHeight:1.7, resize:"vertical", outline:"none" }}
-                />
-
-                <button onClick={() => { if(sandboxPrompt.trim()) setSandboxAnalysis(analyzePrompt(sandboxPrompt)); }}
-                  style={{ marginTop:12, padding:"12px 32px",
-                    background:sandboxPrompt.trim()?"#e94560":"#2a2a2a", border:"none",
-                    color:sandboxPrompt.trim()?"#fff":"#555", borderRadius:4,
-                    cursor:sandboxPrompt.trim()?"pointer":"not-allowed",
-                    fontFamily:"monospace", fontWeight:600, letterSpacing:1, fontSize:13 }}>
-                  Analyze Prompt
+          {/* WHY section */}
+          {showStrong && (
+            <>
+              {!showWhy ? (
+                <button onClick={() => setShowWhy(true)} style={{ background:"transparent", border:"1px solid #2a2d45", color:"#7a80a0", padding:"10px 20px", borderRadius:8, cursor:"pointer", fontFamily:"'JetBrains Mono',monospace", fontSize:12, marginBottom:20 }}>
+                  Why does this work? →
                 </button>
-
-                {sandboxAnalysis && (
-                  <div style={{ marginTop:24 }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:20 }}>
-                      <span style={{ fontFamily:"monospace", color:"#8a8a7a", fontSize:12 }}>Quality Score</span>
-                      <div style={{ flex:1, height:10, background:"#1e1e2e", borderRadius:5, overflow:"hidden" }}>
-                        <div style={{ height:"100%", borderRadius:5, transition:"width 0.5s ease",
-                          width:`${(sandboxAnalysis.score/6)*100}%`,
-                          background:sandboxAnalysis.score>=4?"#4aed88":sandboxAnalysis.score>=2?"#f5a623":"#e94560" }} />
-                      </div>
-                      <span style={{ fontFamily:"monospace", fontSize:18, fontWeight:700,
-                        color:sandboxAnalysis.score>=4?"#4aed88":sandboxAnalysis.score>=2?"#f5a623":"#e94560" }}>
-                        {sandboxAnalysis.score}/6
-                      </span>
-                    </div>
-
-                    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                      {sandboxAnalysis.checks.map((check,i) => (
-                        <div key={i} style={{ display:"flex", alignItems:"center", gap:12,
-                          background:"#111420", border:`1px solid ${check.pass?"#1a3a2a":"#1e1e1e"}`,
-                          borderRadius:6, padding:"12px 16px" }}>
-                          <span style={{ fontSize:15, color:check.pass?"#4aed88":"#3a3a5a", minWidth:20 }}>
-                            {check.pass ? "✓" : "○"}
-                          </span>
-                          <span style={{ fontFamily:"monospace", fontSize:13, color:check.pass?"#c0d8c0":"#5a5a7a" }}>
-                            {check.label}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {sandboxAnalysis.score < 6 && (
-                      <p style={{ marginTop:16, color:"#8a8a7a", fontFamily:"monospace", fontSize:12, fontStyle:"italic" }}>
-                        Tip: Go back to Learn mode and add the missing elements to strengthen your prompt.
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Quick Reference */}
-                <div style={{ marginTop:36, background:"#0d0d18", border:"1px solid #1e1e3a", borderRadius:8, padding:20 }}>
-                  <h3 style={{ margin:"0 0 14px", fontFamily:"monospace", fontSize:12, letterSpacing:3, color:"#5a5a8a", textTransform:"uppercase" }}>
-                    Quick Reference
-                  </h3>
-                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
-                    {[
-                      ["Role",       "You are a [role]..."],
-                      ["Format",     "Respond as JSON / bullet list / 3 sentences"],
-                      ["Examples",   "Input: X → Output: Y"],
-                      ["Reasoning",  "Think step by step"],
-                      ["Audience",   "...aimed at a [beginner/expert]"],
-                      ["Constraint", "Return only the result, no explanation"],
-                    ].map(([label, example]) => (
-                      <div key={label} style={{ background:"#111420", borderRadius:6, padding:"10px 14px" }}>
-                        <div style={{ fontFamily:"monospace", fontSize:10, color:"#e94560", letterSpacing:2, textTransform:"uppercase", marginBottom:4 }}>{label}</div>
-                        <div style={{ fontFamily:"monospace", fontSize:12, color:"#7a8a9a" }}>{example}</div>
+              ) : (
+                <div style={{ background:"#0c0e1c", border:`1px solid ${lessonCat.color}33`, borderRadius:10, padding:20, marginBottom:20 }}>
+                  <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:10, color:lessonCat.color, letterSpacing:3, marginBottom:10 }}>WHY IT WORKS</div>
+                  <p style={{ color:"#c0c8e0", lineHeight:1.8, marginBottom:16, fontSize:14 }}>{activeLesson.why}</p>
+                  <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:10, color:"#4a4d6a", letterSpacing:3, marginBottom:10 }}>GOLDEN RULES</div>
+                  <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                    {activeLesson.rules.map((r,i) => (
+                      <div key={i} style={{ display:"flex", gap:10, alignItems:"flex-start" }}>
+                        <span style={{ color:lessonCat.color, fontFamily:"'JetBrains Mono',monospace", fontSize:12, marginTop:2 }}>{i+1}.</span>
+                        <span style={{ color:"#a0a8c0", fontSize:13, lineHeight:1.6 }}>{r}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
+              {/* EXAMPLE */}
+              {showWhy && (
+                <div style={{ background:"#0a0c1a", border:"1px solid #1e2035", borderRadius:10, padding:20, marginBottom:28 }}>
+                  <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:10, color:"#4a4d6a", letterSpacing:3, marginBottom:12 }}>REAL-WORLD EXAMPLE</div>
+                  <pre style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:12, color:"#7a8090", lineHeight:1.8 }}>{activeLesson.example}</pre>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* nav */}
+          <div style={{ display:"flex", justifyContent:"space-between", gap:12, marginTop:8 }}>
+            <button onClick={() => navLesson(-1)} disabled={idx===0}
+              style={{ flex:1, padding:"12px", background:"transparent", border:"1px solid #1e2035", color:idx===0?"#2a2d45":"#7a80a0", borderRadius:8, cursor:idx===0?"not-allowed":"pointer", fontFamily:"'JetBrains Mono',monospace", fontSize:12 }}>
+              ← Previous
+            </button>
+            <button onClick={() => navLesson(1)} disabled={idx===LESSONS.length-1}
+              style={{ flex:1, padding:"12px", background:idx===LESSONS.length-1?"transparent":`${lessonCat.color}22`, border:`1px solid ${idx===LESSONS.length-1?"#1e2035":lessonCat.color+"55"}`, color:idx===LESSONS.length-1?"#2a2d45":lessonCat.color, borderRadius:8, cursor:idx===LESSONS.length-1?"not-allowed":"pointer", fontFamily:"'JetBrains Mono',monospace", fontSize:12 }}>
+              Next Lesson →
+            </button>
           </div>
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
-  </script>
+  // ── HOME / LESSON LIST ────────────────────────────────────────────────────
+  const pct = Math.round((progress.length / LESSONS.length) * 100);
+
+  return (
+    <div style={{ minHeight:"100vh", background:"#060810" }}>
+      {/* HEADER */}
+      <div style={{ background:"linear-gradient(160deg,#0d0f20 0%,#080a18 60%,#060810 100%)", borderBottom:"1px solid #1a1d30", padding:"40px 20px 32px" }}>
+        <div style={{ maxWidth:900, margin:"0 auto" }}>
+          <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:11, color:"#ff6b35", letterSpacing:4, marginBottom:10 }}>PROMPT ENGINEERING</div>
+          <h1 style={{ fontSize:42, fontWeight:800, color:"#f0ece0", lineHeight:1.05, marginBottom:8 }}>
+            Master the Art of<br/>
+            <span style={{ background:"linear-gradient(90deg,#ff6b35,#7c3aed)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>Prompt Coding</span>
+          </h1>
+          <p style={{ color:"#6a708a", fontFamily:"'JetBrains Mono',monospace", fontSize:13, marginBottom:24 }}>
+            20 lessons across 8 topics — from basics to web development
+          </p>
+
+          {/* progress bar */}
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ flex:1, height:6, background:"#1a1d30", borderRadius:3, overflow:"hidden" }}>
+              <div style={{ height:"100%", width:`${pct}%`, background:"linear-gradient(90deg,#ff6b35,#7c3aed)", borderRadius:3, transition:"width .5s ease" }}/>
+            </div>
+            <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:12, color:"#ff6b35", minWidth:60 }}>
+              {progress.length}/{LESSONS.length}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ maxWidth:900, margin:"0 auto", padding:"28px 20px 60px" }}>
+        {/* category filter */}
+        <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:28 }}>
+          <button onClick={() => setActiveCat("all")} style={{ padding:"7px 16px", border:`1px solid ${activeCat==="all"?"#ff6b35":"#1e2035"}`, background:activeCat==="all"?"#ff6b3522":"transparent", color:activeCat==="all"?"#ff6b35":"#5a6080", borderRadius:20, cursor:"pointer", fontFamily:"'JetBrains Mono',monospace", fontSize:11, letterSpacing:1 }}>
+            ALL ({LESSONS.length})
+          </button>
+          {CATEGORIES.map(c => {
+            const count = LESSONS.filter(l=>l.cat===c.id).length;
+            const active = activeCat===c.id;
+            return (
+              <button key={c.id} onClick={() => setActiveCat(c.id)} style={{ padding:"7px 16px", border:`1px solid ${active?c.color+"88":"#1e2035"}`, background:active?`${c.color}22`:"transparent", color:active?c.color:"#5a6080", borderRadius:20, cursor:"pointer", fontFamily:"'JetBrains Mono',monospace", fontSize:11, letterSpacing:1 }}>
+                {c.icon} {c.label} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        {/* lesson grid */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:14 }}>
+          {filtered.map((lesson, i) => {
+            const lcat = CATEGORIES.find(c => c.id === lesson.cat);
+            const done = progress.includes(lesson.id);
+            return (
+              <div key={lesson.id} onClick={() => openLesson(lesson)}
+                style={{ background:"#0a0c18", border:`1px solid ${done?lcat.color+"44":"#1a1d2e"}`, borderRadius:12, padding:"20px 18px", cursor:"pointer", transition:"all .2s", position:"relative", animation:`fadeUp .3s ease ${i*0.03}s both` }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = lcat.color+"88"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = done?lcat.color+"44":"#1a1d2e"; e.currentTarget.style.transform = "translateY(0)"; }}>
+                {done && <div style={{ position:"absolute", top:12, right:12, width:20, height:20, borderRadius:"50%", background:"#10b981", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, color:"#fff" }}>✓</div>}
+                <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:10 }}>
+                  <span style={{ color:lcat.color, fontSize:14 }}>{lcat.icon}</span>
+                  <span style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:10, color:lcat.color, letterSpacing:2 }}>{lcat.label.toUpperCase()}</span>
+                </div>
+                <div style={{ fontFamily:"'JetBrains Mono',monospace", fontSize:10, color:"#3a3d55", marginBottom:6 }}>LESSON {lesson.id}</div>
+                <h3 style={{ fontSize:15, fontWeight:700, color:"#e0dcd0", marginBottom:6, lineHeight:1.3 }}>{lesson.title}</h3>
+                <p style={{ fontSize:12, color:"#5a6080", fontStyle:"italic", lineHeight:1.5 }}>{lesson.tagline}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
 </body>
 </html>
