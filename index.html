@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prompt Engineering — Learn to Code Prompts</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: #0b0c10;
+      color: #e8e6e0;
+      font-family: Georgia, 'Times New Roman', serif;
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    textarea:focus { border-color: #e94560 !important; }
+    button:focus { outline: 2px solid #e94560; outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    // ─── DATA ───────────────────────────────────────────────────────────────────
+
+    const lessons = [
+      {
+        id: 1,
+        title: "Be Specific & Clear",
+        concept: "Vague prompts yield vague results. Specific prompts yield specific results.",
+        bad: "Write something about dogs.",
+        good: "Write a 3-sentence description of a golden retriever puppy playing fetch in a park, aimed at a pet adoption website.",
+        explanation: "The improved prompt specifies: format (3 sentences), subject details (golden retriever puppy, fetch, park), and context (pet adoption website).",
+        tips: ["Specify format and length", "Include relevant context", "Define the audience or purpose"],
+      },
+      {
+        id: 2,
+        title: "Assign a Role",
+        concept: "Telling the AI who to 'be' shapes tone, vocabulary, and expertise level.",
+        bad: "Explain quantum entanglement.",
+        good: "You are a physics professor teaching a first-year college student. Explain quantum entanglement using a simple analogy, in under 100 words.",
+        explanation: "Role assignment sets the communication style. The analogy constraint and word limit further sharpen the output.",
+        tips: ["Use 'You are a [role]...' at the start", "Match the role to the audience", "Roles unlock domain-specific reasoning"],
+      },
+      {
+        id: 3,
+        title: "Use Examples (Few-Shot)",
+        concept: "Showing examples of the desired output dramatically improves accuracy.",
+        bad: "Convert these sentences to formal English.",
+        good: `Convert these sentences to formal English.\n\nExample:\nInput: "Gonna grab coffee, wanna come?"\nOutput: "I am going to get coffee. Would you like to join me?"\n\nNow convert: "Hey, can u fix this ASAP?"`,
+        explanation: "The example teaches the model the exact transformation style you want — tone, punctuation, and structure.",
+        tips: ["1–3 examples is often enough", "Examples define style implicitly", "Use consistent formatting"],
+      },
+      {
+        id: 4,
+        title: "Chain of Thought",
+        concept: "Ask the model to reason step-by-step before giving a final answer.",
+        bad: "Is 17 a prime number?",
+        good: `Is 17 a prime number? Think through this step by step before answering.\n\nStep 1: List divisors of 17 from 2 to √17 (≈4.1).\nStep 2: Check 2, 3, 4 — none divide evenly.\nStep 3: Conclude.`,
+        explanation: "Chain-of-thought prompting reduces errors on reasoning tasks. Adding 'think step by step' often works even without spelling out the steps.",
+        tips: ["Add 'think step by step'", "Great for math, logic, planning", "Longer reasoning = fewer errors"],
+      },
+      {
+        id: 5,
+        title: "Constrain the Output",
+        concept: "Format constraints make responses easier to parse and use programmatically.",
+        bad: "List some programming languages.",
+        good: `List 5 programming languages as a JSON array. Each item should have:\n- "name": the language name\n- "year": year first released\n- "use_case": one primary use case\n\nReturn only the JSON with no explanation.`,
+        explanation: "Structured output is essential for pipelines. Specifying format, fields, and 'no explanation' removes unwanted noise.",
+        tips: ["Specify JSON, markdown, CSV, or custom formats", "Use 'return only X' to remove preamble", "Define fields explicitly"],
+      },
+      {
+        id: 6,
+        title: "Iterative Refinement",
+        concept: "Prompt engineering is a loop — test, analyze gaps, and refine.",
+        bad: "Just send the same prompt again if it doesn't work.",
+        good: `Initial: "Summarize this article."\n→ Output too long\n\nRefined: "Summarize this article in exactly 2 sentences."\n→ Missing key point\n\nRefined: "Summarize this article in exactly 2 sentences, making sure to include the main conclusion."`,
+        explanation: "Each iteration diagnoses one specific problem. Don't rewrite everything — identify the constraint that's missing and add it.",
+        tips: ["Change one variable at a time", "Diagnose before refining", "Keep a log of what worked"],
+      },
+    ];
+
+    const quizzes = [
+      {
+        id: 1,
+        question: "Which prompt is more likely to get a useful code review?",
+        options: [
+          "Review my code.",
+          "Review this Python function for readability and performance. Suggest 2–3 specific improvements with code examples.",
+          "Make my code better.",
+          "Check for bugs.",
+        ],
+        answer: 1,
+        explanation: "Option B specifies the language, the review dimensions (readability + performance), the format (2–3 suggestions), and asks for code examples.",
+      },
+      {
+        id: 2,
+        question: "What does 'few-shot prompting' mean?",
+        options: [
+          "Using short prompts",
+          "Sending multiple requests at once",
+          "Providing examples of desired input/output pairs in the prompt",
+          "Asking for brief responses",
+        ],
+        answer: 2,
+        explanation: "Few-shot prompting means including 1–3 examples of the task you want performed, so the model learns the pattern from demonstration.",
+      },
+      {
+        id: 3,
+        question: "You want the AI to return only a JSON object with no extra text. What should you add?",
+        options: [
+          "Please be concise.",
+          "Return only valid JSON with no explanation or additional text.",
+          "Format your response nicely.",
+          "Be structured.",
+        ],
+        answer: 1,
+        explanation: "Being explicit about format AND suppressing extras ('no explanation') is the most reliable approach for clean structured output.",
+      },
+      {
+        id: 4,
+        question: "When is 'chain of thought' prompting most useful?",
+        options: [
+          "Writing creative fiction",
+          "Translating languages",
+          "Solving multi-step reasoning, math, or logic problems",
+          "Generating lists",
+        ],
+        answer: 2,
+        explanation: "Chain-of-thought shines on tasks requiring sequential reasoning. It forces the model to 'show its work' before concluding.",
+      },
+    ];
+
+    // ─── APP ─────────────────────────────────────────────────────────────────────
+
+    function App() {
+      const [activeTab, setActiveTab]           = useState("learn");
+      const [currentLesson, setCurrentLesson]   = useState(0);
+      const [showExplanation, setShowExplanation] = useState(false);
+      const [quizIndex, setQuizIndex]           = useState(0);
+      const [selected, setSelected]             = useState(null);
+      const [quizScore, setQuizScore]           = useState(0);
+      const [quizDone, setQuizDone]             = useState(false);
+      const [sandboxPrompt, setSandboxPrompt]   = useState("");
+      const [sandboxAnalysis, setSandboxAnalysis] = useState(null);
+
+      const lesson = lessons[currentLesson];
+      const quiz   = quizzes[quizIndex];
+
+      const analyzePrompt = (text) => {
+        const checks = [
+          { label: "Specifies format or length",        pass: /\b(sentence|word|paragraph|list|json|bullet|format|length|\d+)\b/i.test(text) },
+          { label: "Includes context or purpose",       pass: text.length > 60 },
+          { label: "Assigns a role",                    pass: /\b(you are|act as|as a|as an)\b/i.test(text) },
+          { label: "Uses examples",                     pass: /\b(example|for instance|e\.g\.|input:|output:)\b/i.test(text) },
+          { label: "Requests step-by-step reasoning",   pass: /\b(step by step|think through|reason|explain how)\b/i.test(text) },
+          { label: "Constrains output type",            pass: /\b(only|no explanation|return|respond with|just)\b/i.test(text) },
+        ];
+        return { checks, score: checks.filter(c => c.pass).length };
+      };
+
+      const handleQuizSelect = (idx) => {
+        if (selected !== null) return;
+        setSelected(idx);
+        if (idx === quiz.answer) setQuizScore(s => s + 1);
+      };
+
+      const handleNextQuiz = () => {
+        if (quizIndex + 1 >= quizzes.length) { setQuizDone(true); }
+        else { setQuizIndex(q => q + 1); setSelected(null); }
+      };
+
+      const resetQuiz = () => { setQuizIndex(0); setSelected(null); setQuizScore(0); setQuizDone(false); };
+
+      // ── shared styles ──
+      const btn = (active, color="#e94560") => ({
+        padding: "8px 20px",
+        border: `1.5px solid ${active ? color : "#333"}`,
+        background: active ? color : "transparent",
+        color: active ? "#fff" : "#888",
+        borderRadius: 3,
+        cursor: "pointer",
+        fontSize: 13,
+        fontFamily: "monospace",
+        letterSpacing: 1,
+        textTransform: "uppercase",
+        transition: "all 0.15s",
+      });
+
+      return (
+        <div style={{ minHeight: "100vh", background: "#0b0c10" }}>
+
+          {/* ── HEADER ── */}
+          <div style={{
+            background: "linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)",
+            borderBottom: "2px solid #e94560",
+            padding: "28px 32px 20px",
+          }}>
+            <div style={{ maxWidth: 860, margin: "0 auto" }}>
+              <div style={{ fontSize:11, letterSpacing:4, color:"#e94560", textTransform:"uppercase", fontFamily:"monospace", marginBottom:4 }}>Master</div>
+              <h1 style={{ fontSize:36, fontWeight:700, color:"#f0ede8", letterSpacing:"-0.5px", marginBottom:6 }}>Prompt Engineering</h1>
+              <p style={{ color:"#9a9a8a", fontSize:14, fontFamily:"monospace", marginBottom:20 }}>Learn to write prompts that get results</p>
+              <div style={{ display:"flex", gap:4 }}>
+                {["learn","quiz","sandbox"].map(tab => (
+                  <button key={tab} onClick={() => setActiveTab(tab)} style={btn(activeTab===tab)}>{tab}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ maxWidth:860, margin:"0 auto", padding:"32px 24px" }}>
+
+            {/* ══ LEARN ══════════════════════════════════════════════════════════ */}
+            {activeTab === "learn" && (
+              <div>
+                {/* progress dots */}
+                <div style={{ display:"flex", gap:6, marginBottom:28 }}>
+                  {lessons.map((l,i) => (
+                    <button key={l.id} onClick={() => { setCurrentLesson(i); setShowExplanation(false); }}
+                      style={{ flex:1, height:6, border:"none", borderRadius:3, cursor:"pointer", transition:"background .2s",
+                        background: i===currentLesson ? "#e94560" : i<currentLesson ? "#4a4a6a" : "#1e1e2e" }} />
+                  ))}
+                </div>
+
+                <div style={{ marginBottom:8 }}>
+                  <span style={{ fontSize:11, color:"#e94560", fontFamily:"monospace", letterSpacing:3, textTransform:"uppercase" }}>
+                    Lesson {lesson.id} of {lessons.length}
+                  </span>
+                  <h2 style={{ margin:"6px 0 4px", fontSize:26, color:"#f0ede8" }}>{lesson.title}</h2>
+                  <p style={{ color:"#8a8a7a", margin:"0 0 24px", fontStyle:"italic", fontSize:15 }}>{lesson.concept}</p>
+                </div>
+
+                {/* bad vs good */}
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:20 }}>
+                  {[
+                    { label:"Weak Prompt", icon:"✗", iconColor:"#e94560", bg:"#1a0808", border:"#5a1a1a", textColor:"#c0a0a0", content:lesson.bad },
+                    { label:"Strong Prompt", icon:"✓", iconColor:"#4aed88", bg:"#081a0e", border:"#1a5a2a", textColor:"#a0c0a8", content:lesson.good },
+                  ].map(({ label,icon,iconColor,bg,border,textColor,content }) => (
+                    <div key={label} style={{ background:bg, border:`1px solid ${border}`, borderRadius:8, padding:20 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+                        <span style={{ color:iconColor, fontSize:16 }}>{icon}</span>
+                        <span style={{ color:iconColor, fontFamily:"monospace", fontSize:11, letterSpacing:2, textTransform:"uppercase" }}>{label}</span>
+                      </div>
+                      <pre style={{ margin:0, whiteSpace:"pre-wrap", fontFamily:"monospace", fontSize:13, color:textColor, lineHeight:1.6 }}>{content}</pre>
+                    </div>
+                  ))}
+                </div>
+
+                {/* explanation toggle */}
+                <button onClick={() => setShowExplanation(e => !e)} style={{
+                  background:"transparent", border:"1.5px solid #e94560", color:"#e94560",
+                  padding:"10px 24px", borderRadius:4, cursor:"pointer",
+                  fontFamily:"monospace", fontSize:13, letterSpacing:1, marginBottom:16,
+                }}>
+                  {showExplanation ? "Hide Explanation" : "Why is this better? →"}
+                </button>
+
+                {showExplanation && (
+                  <div style={{ background:"#111420", border:"1px solid #2a2a4a", borderRadius:8, padding:20, marginBottom:20 }}>
+                    <p style={{ margin:"0 0 16px", color:"#c8c4be", lineHeight:1.7 }}>{lesson.explanation}</p>
+                    <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                      {lesson.tips.map((tip,i) => (
+                        <span key={i} style={{ background:"#1e1e3a", border:"1px solid #3a3a6a", borderRadius:20,
+                          padding:"5px 14px", fontSize:12, color:"#a0a0d0", fontFamily:"monospace" }}>{tip}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* nav */}
+                <div style={{ display:"flex", gap:12, justifyContent:"space-between" }}>
+                  <button onClick={() => { setCurrentLesson(c => Math.max(0,c-1)); setShowExplanation(false); }}
+                    disabled={currentLesson===0}
+                    style={{ padding:"10px 24px", background:"transparent", border:"1.5px solid #333",
+                      color:currentLesson===0?"#444":"#888", borderRadius:4,
+                      cursor:currentLesson===0?"not-allowed":"pointer", fontFamily:"monospace" }}>
+                    ← Previous
+                  </button>
+                  {currentLesson < lessons.length-1
+                    ? <button onClick={() => { setCurrentLesson(c=>c+1); setShowExplanation(false); }}
+                        style={{ padding:"10px 28px", background:"#e94560", border:"none", color:"#fff",
+                          borderRadius:4, cursor:"pointer", fontFamily:"monospace", fontWeight:600, letterSpacing:1 }}>
+                        Next Lesson →
+                      </button>
+                    : <button onClick={() => setActiveTab("quiz")}
+                        style={{ padding:"10px 28px", background:"#4aed88", border:"none", color:"#0b0c10",
+                          borderRadius:4, cursor:"pointer", fontFamily:"monospace", fontWeight:700 }}>
+                        Take the Quiz →
+                      </button>
+                  }
+                </div>
+              </div>
+            )}
+
+            {/* ══ QUIZ ═══════════════════════════════════════════════════════════ */}
+            {activeTab === "quiz" && (
+              <div>
+                {quizDone ? (
+                  <div style={{ textAlign:"center", padding:"40px 0" }}>
+                    <div style={{ fontSize:64, marginBottom:16 }}>{quizScore >= 3 ? "🎯" : "📚"}</div>
+                    <h2 style={{ color:"#f0ede8", margin:"0 0 8px" }}>{quizScore} / {quizzes.length} correct</h2>
+                    <p style={{ color:"#8a8a7a", marginBottom:28, fontFamily:"monospace" }}>
+                      {quizScore === quizzes.length
+                        ? "Perfect score! You've got the fundamentals down."
+                        : quizScore >= 2 ? "Good work. Review the lessons you missed."
+                        : "Keep studying — revisit the Learn section and try again."}
+                    </p>
+                    <div style={{ display:"flex", gap:12, justifyContent:"center" }}>
+                      <button onClick={resetQuiz} style={{ padding:"12px 28px", background:"#e94560", border:"none",
+                        color:"#fff", borderRadius:4, cursor:"pointer", fontFamily:"monospace", fontWeight:600 }}>
+                        Retry Quiz
+                      </button>
+                      <button onClick={() => setActiveTab("sandbox")} style={{ padding:"12px 28px",
+                        background:"transparent", border:"1.5px solid #4aed88", color:"#4aed88",
+                        borderRadius:4, cursor:"pointer", fontFamily:"monospace" }}>
+                        Try Sandbox →
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
+                      <span style={{ fontFamily:"monospace", color:"#e94560", fontSize:12, letterSpacing:3, textTransform:"uppercase" }}>
+                        Question {quizIndex+1} of {quizzes.length}
+                      </span>
+                      <span style={{ fontFamily:"monospace", color:"#4a4a6a", fontSize:12 }}>Score: {quizScore}</span>
+                    </div>
+
+                    <h2 style={{ color:"#f0ede8", fontSize:20, lineHeight:1.4, marginBottom:24 }}>{quiz.question}</h2>
+
+                    <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:24 }}>
+                      {quiz.options.map((opt, i) => {
+                        let bg="#111420", border="#2a2a4a", color="#c8c4be";
+                        if (selected !== null) {
+                          if (i === quiz.answer)                        { bg="#081a0e"; border="#4aed88"; color="#4aed88"; }
+                          else if (i===selected && selected!==quiz.answer) { bg="#1a0808"; border="#e94560"; color="#e94560"; }
+                        }
+                        return (
+                          <button key={i} onClick={() => handleQuizSelect(i)} style={{
+                            background:bg, border:`1.5px solid ${border}`, color,
+                            borderRadius:6, padding:"14px 18px", textAlign:"left",
+                            cursor:selected===null?"pointer":"default",
+                            fontFamily:"monospace", fontSize:13, lineHeight:1.5, transition:"all 0.15s",
+                          }}>
+                            <span style={{ marginRight:10, opacity:0.5 }}>{String.fromCharCode(65+i)}.</span>{opt}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {selected !== null && (
+                      <div style={{ background:"#111420", border:"1px solid #2a2a4a", borderRadius:8, padding:16, marginBottom:20 }}>
+                        <span style={{ fontFamily:"monospace", fontSize:11, letterSpacing:2,
+                          color: selected===quiz.answer ? "#4aed88" : "#e94560" }}>
+                          {selected===quiz.answer ? "✓ CORRECT — " : "✗ INCORRECT — "}
+                        </span>
+                        <span style={{ color:"#a0a0b0", fontSize:14 }}>{quiz.explanation}</span>
+                      </div>
+                    )}
+
+                    {selected !== null && (
+                      <button onClick={handleNextQuiz} style={{ padding:"10px 28px", background:"#e94560",
+                        border:"none", color:"#fff", borderRadius:4, cursor:"pointer",
+                        fontFamily:"monospace", fontWeight:600 }}>
+                        {quizIndex+1 < quizzes.length ? "Next Question →" : "See Results →"}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ══ SANDBOX ════════════════════════════════════════════════════════ */}
+            {activeTab === "sandbox" && (
+              <div>
+                <h2 style={{ color:"#f0ede8", marginTop:0, marginBottom:6 }}>Prompt Analyzer</h2>
+                <p style={{ color:"#8a8a7a", fontFamily:"monospace", fontSize:13, marginBottom:24 }}>
+                  Write a prompt and get instant feedback on its quality.
+                </p>
+
+                <textarea
+                  value={sandboxPrompt}
+                  onChange={e => { setSandboxPrompt(e.target.value); setSandboxAnalysis(null); }}
+                  placeholder="Type your prompt here…"
+                  style={{ width:"100%", minHeight:160, background:"#111420", border:"1.5px solid #2a2a4a",
+                    borderRadius:8, padding:16, color:"#e8e6e0", fontFamily:"monospace",
+                    fontSize:14, lineHeight:1.7, resize:"vertical", outline:"none" }}
+                />
+
+                <button onClick={() => { if(sandboxPrompt.trim()) setSandboxAnalysis(analyzePrompt(sandboxPrompt)); }}
+                  style={{ marginTop:12, padding:"12px 32px",
+                    background:sandboxPrompt.trim()?"#e94560":"#2a2a2a", border:"none",
+                    color:sandboxPrompt.trim()?"#fff":"#555", borderRadius:4,
+                    cursor:sandboxPrompt.trim()?"pointer":"not-allowed",
+                    fontFamily:"monospace", fontWeight:600, letterSpacing:1, fontSize:13 }}>
+                  Analyze Prompt
+                </button>
+
+                {sandboxAnalysis && (
+                  <div style={{ marginTop:24 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:20 }}>
+                      <span style={{ fontFamily:"monospace", color:"#8a8a7a", fontSize:12 }}>Quality Score</span>
+                      <div style={{ flex:1, height:10, background:"#1e1e2e", borderRadius:5, overflow:"hidden" }}>
+                        <div style={{ height:"100%", borderRadius:5, transition:"width 0.5s ease",
+                          width:`${(sandboxAnalysis.score/6)*100}%`,
+                          background:sandboxAnalysis.score>=4?"#4aed88":sandboxAnalysis.score>=2?"#f5a623":"#e94560" }} />
+                      </div>
+                      <span style={{ fontFamily:"monospace", fontSize:18, fontWeight:700,
+                        color:sandboxAnalysis.score>=4?"#4aed88":sandboxAnalysis.score>=2?"#f5a623":"#e94560" }}>
+                        {sandboxAnalysis.score}/6
+                      </span>
+                    </div>
+
+                    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                      {sandboxAnalysis.checks.map((check,i) => (
+                        <div key={i} style={{ display:"flex", alignItems:"center", gap:12,
+                          background:"#111420", border:`1px solid ${check.pass?"#1a3a2a":"#1e1e1e"}`,
+                          borderRadius:6, padding:"12px 16px" }}>
+                          <span style={{ fontSize:15, color:check.pass?"#4aed88":"#3a3a5a", minWidth:20 }}>
+                            {check.pass ? "✓" : "○"}
+                          </span>
+                          <span style={{ fontFamily:"monospace", fontSize:13, color:check.pass?"#c0d8c0":"#5a5a7a" }}>
+                            {check.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {sandboxAnalysis.score < 6 && (
+                      <p style={{ marginTop:16, color:"#8a8a7a", fontFamily:"monospace", fontSize:12, fontStyle:"italic" }}>
+                        Tip: Go back to Learn mode and add the missing elements to strengthen your prompt.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Quick Reference */}
+                <div style={{ marginTop:36, background:"#0d0d18", border:"1px solid #1e1e3a", borderRadius:8, padding:20 }}>
+                  <h3 style={{ margin:"0 0 14px", fontFamily:"monospace", fontSize:12, letterSpacing:3, color:"#5a5a8a", textTransform:"uppercase" }}>
+                    Quick Reference
+                  </h3>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+                    {[
+                      ["Role",       "You are a [role]..."],
+                      ["Format",     "Respond as JSON / bullet list / 3 sentences"],
+                      ["Examples",   "Input: X → Output: Y"],
+                      ["Reasoning",  "Think step by step"],
+                      ["Audience",   "...aimed at a [beginner/expert]"],
+                      ["Constraint", "Return only the result, no explanation"],
+                    ].map(([label, example]) => (
+                      <div key={label} style={{ background:"#111420", borderRadius:6, padding:"10px 14px" }}>
+                        <div style={{ fontFamily:"monospace", fontSize:10, color:"#e94560", letterSpacing:2, textTransform:"uppercase", marginBottom:4 }}>{label}</div>
+                        <div style={{ fontFamily:"monospace", fontSize:12, color:"#7a8a9a" }}>{example}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
